@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-2.5-flash"
     app_env: str = "development"
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
+    database_url: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

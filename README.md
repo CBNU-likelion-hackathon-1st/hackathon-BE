@@ -19,6 +19,7 @@ uvicorn app.main:app --reload --port 5050
 ## API
 
 - `GET /health` — 서버 상태 확인
+- `GET /health/database` — MySQL 연결 상태 확인
 - `POST /api/v1/chat` — 땅콩이의 말싸움 응답 생성
 
 ## 커밋 메시지 타입
@@ -39,3 +40,4 @@ uvicorn app.main:app --reload --port 5050
 
 - `GEMINI_API_KEY`: Google AI Studio에서 발급한 실제 키
 - `CORS_ORIGINS`: 배포된 프론트엔드 주소. 예: `https://your-app.vercel.app`
+- `DATABASE_URL`: MySQL 연결 문자열. 예: `mysql+pymysql://USER:PASSWORD@HOST:3306/ddangkongi?charset=utf8mb4`
