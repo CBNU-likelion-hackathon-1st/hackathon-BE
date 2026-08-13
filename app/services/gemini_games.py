@@ -7,6 +7,8 @@ from google import genai
 from google.genai import types
 
 from app.core.config import get_settings
+
+
 class GeminiGameError(RuntimeError):
     """Gemini 응답을 안전하게 처리할 수 없을 때 발생한다."""
 
@@ -17,7 +19,13 @@ def get_gemini_client() -> genai.Client:
     return genai.Client(api_key=settings.gemini_api_key.get_secret_value())
 
 
-def generate_json(prompt: str) -> dict[str, object]:
+def generate_json(
+    prompt: str,
+    *,
+    system_instruction: str | None = None,
+    temperature: float = 0.2,
+    response_schema: type | dict[str, object] | None = None,
+) -> dict[str, object]:
     """Gemini의 JSON 응답을 파싱해 반환한다."""
     settings = get_settings()
     try:
@@ -25,8 +33,10 @@ def generate_json(prompt: str) -> dict[str, object]:
             model=settings.gemini_model,
             contents=prompt,
             config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
                 response_mime_type="application/json",
-                temperature=0.2,
+                response_schema=response_schema,
+                temperature=temperature,
             ),
         )
         if not response.text:

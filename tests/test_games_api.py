@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -32,10 +33,47 @@ class GamesApiTest(unittest.TestCase):
         self.assertEqual(result.status_code, 200)
         self.assertEqual(result.json()["metrics"]["completedRounds"], 3)
 
-    def test_unimplemented_game_returns_400(self):
+    def test_battle_requires_opponent_type(self):
         response = self.client.post("/api/games", json={"mode": "battle"})
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json()["error"]["code"], "GAME_NOT_IMPLEMENTED")
+        self.assertEqual(response.json()["error"]["code"], "INVALID_INPUT")
+
+    @patch("app.games.battle.gemini_battle.judge_turn")
+    @patch("app.games.battle.gemini_battle.generate_persona_reply")
+    def test_battle_game_starts_and_plays_a_turn(self, generate_reply, judge_turn):
+        generate_reply.return_value = "성과로 보여주면 인정하지."
+        judge_turn.return_value = {
+            "user": {
+                "logic": 8,
+                "impact": 7,
+                "flow": 8,
+                "aggressionLevel": 0,
+                "violations": [],
+                "reason": "근거가 분명합니다.",
+            },
+            "ai": {
+                "logic": 6,
+                "impact": 6,
+                "flow": 7,
+                "aggressionLevel": 0,
+                "violations": [],
+                "reason": "무난한 반박입니다.",
+            },
+        }
+        start = self.client.post(
+            "/api/games",
+            json={"mode": "battle", "opponentType": "boss"},
+        )
+
+        self.assertEqual(start.status_code, 201)
+        self.assertEqual(start.json()["opponent"]["name"], "직장 상사")
+        turn = self.client.post(
+            f"/api/games/{start.json()['gameId']}/turn",
+            json={"input": "지난달보다 성과가 20% 올랐습니다."},
+        )
+        self.assertEqual(turn.status_code, 200)
+        self.assertFalse(turn.json()["ended"])
+        self.assertIn("logic", turn.json()["analysis"])
 
     def test_word_chain_flow_can_finish_and_return_result(self):
         start = self.client.post("/api/games", json={"mode": "word_chain"})

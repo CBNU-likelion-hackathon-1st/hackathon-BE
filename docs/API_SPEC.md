@@ -1,7 +1,7 @@
 # 땅콩이 MVP API 명세서
 
 - Base URL: `http://127.0.0.1:5000`
-- 구현 완료: 밸런스 게임, 끝말잇기
+- 구현 완료: 말싸움, 밸런스 게임, 끝말잇기
 - 게임 상태: 서버 메모리에 저장하며 서버 재시작 시 초기화
 
 ## 공통 API
@@ -11,6 +11,114 @@
 | `POST` | `/api/games` | `mode`에 맞는 게임 시작 |
 | `POST` | `/api/games/{gameId}/turn` | 한 턴 진행 |
 | `GET` | `/api/games/{gameId}/result` | 종료된 게임 결과 조회 |
+
+---
+
+## 말싸움
+
+### 1. 게임 시작
+
+`POST /api/games`
+
+```json
+{
+  "mode": "battle",
+  "opponentType": "boss"
+}
+```
+
+`opponentType`은 아래 3개만 사용할 수 있다.
+
+| 값 | 역할 |
+| --- | --- |
+| `boss` | 직장 상사 |
+| `older_brother` | 형 |
+| `ex` | 전애인 |
+
+```json
+{
+  "gameId": "game-b1c2d3e4",
+  "mode": "battle",
+  "status": "playing",
+  "round": 1,
+  "maxRounds": 5,
+  "score": {"me": 50, "ai": 50},
+  "opponent": {"type": "boss", "name": "직장 상사"},
+  "message": "이 보고서, 이게 최선이야? 다시 설명해 봐.",
+  "placeholder": "직장 상사에게 반박하기...",
+  "quickReplies": [
+    "근거부터 말씀해 주세요",
+    "그 기준은 누가 정했나요?",
+    "제 설명도 들어보시죠"
+  ]
+}
+```
+
+### 2. 대사 전송
+
+`POST /api/games/{gameId}/turn`
+
+```json
+{
+  "input": "지난달보다 성과가 20% 올랐습니다."
+}
+```
+
+```json
+{
+  "reply": "수치는 좋아졌지만 목표를 달성했는지가 더 중요하지 않겠어요?",
+  "round": 2,
+  "score": {"me": 56, "ai": 44},
+  "turnScore": {"me": 80, "ai": 64},
+  "analysis": {
+    "logic": 80,
+    "impact": 70,
+    "flow": 80,
+    "aggressionLevel": 0,
+    "angerPenalty": 0
+  },
+  "judgeReason": "수치 근거로 상대의 지적을 잘 받아쳤습니다.",
+  "quickReplies": [
+    "근거부터 말씀해 주세요",
+    "그 기준은 누가 정했나요?",
+    "제 설명도 들어보시죠"
+  ],
+  "ended": false,
+  "winner": null
+}
+```
+
+- Gemini의 상대 답변 생성과 점수 심사는 별도 요청으로 실행된다.
+- 점수는 `논리력 40% + 타격감 35% + 티키타카 25% - 분노 감점`이다.
+- 가벼운 짜증은 5점, 공격적인 분노는 15점을 감점한다.
+- 욕설·협박·혐오 표현은 즉시 패배 처리한다.
+- 5라운드 후 사용자와 AI의 누적 점수를 비교한다. 화면용 점수 차이가 3점 이하면 무승부다.
+
+### 3. 결과 조회
+
+`GET /api/games/{gameId}/result`
+
+```json
+{
+  "gameId": "game-b1c2d3e4",
+  "mode": "battle",
+  "opponentType": "boss",
+  "opponentName": "직장 상사",
+  "winner": "me",
+  "title": "통쾌한 승리!",
+  "finalScore": 56,
+  "metrics": {
+    "logic": 82,
+    "impact": 76,
+    "flow": 79,
+    "angerPenalty": 0,
+    "completedRounds": 5,
+    "violations": 0
+  },
+  "bestLine": "지난달보다 성과가 20% 올랐습니다.",
+  "reason": "5라운드의 논리력, 타격감, 티키타카 점수를 합산했습니다."
+}
+```
 
 ---
 
@@ -205,3 +313,4 @@
 | `400` | 아직 구현되지 않은 게임 또는 잘못된 요청 형식 |
 | `404` | 게임을 찾을 수 없음 |
 | `409` | 게임이 아직 끝나지 않았거나 이미 끝남 |
+| `503` | Gemini 응답 생성 또는 심사 실패 |

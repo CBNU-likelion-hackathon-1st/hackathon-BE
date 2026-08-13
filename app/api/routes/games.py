@@ -5,8 +5,9 @@ from types import ModuleType
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from app.games import balance, word_chain
+from app.games import balance, battle, word_chain
 from app.schemas.games import CreateGameRequest, TurnRequest
+from app.services.gemini_games import GeminiGameError
 from app.store import games, new_game_id
 
 
@@ -14,6 +15,7 @@ router = APIRouter(prefix="/api", tags=["games"])
 
 GAME_HANDLERS: dict[str, ModuleType] = {
     "balance": balance,
+    "battle": battle,
     "word_chain": word_chain,
 }
 
@@ -36,14 +38,17 @@ def create_game(payload: CreateGameRequest):
     """선택한 모드의 새 게임과 첫 질문 또는 단어를 반환한다."""
     handler = get_handler(payload.mode)
     if handler is None:
-        return error_response(
-            400,
-            "GAME_NOT_IMPLEMENTED",
-            "현재는 밸런스 게임과 끝말잇기만 이용할 수 있습니다.",
-        )
+        return error_response(400, "GAME_NOT_IMPLEMENTED", "지원하지 않는 게임입니다.")
 
     game_id = new_game_id()
-    session = handler.start_game()
+    try:
+        session = (
+            handler.start_game(payload.opponentType)
+            if payload.mode == "battle"
+            else handler.start_game()
+        )
+    except ValueError as error:
+        return error_response(400, "INVALID_INPUT", str(error))
     session.update({"gameId": game_id, "mode": payload.mode})
     games[game_id] = session
 
@@ -71,6 +76,12 @@ def play_turn(game_id: str, payload: TurnRequest):
         return handler.play_turn(session, payload.input)
     except ValueError as error:
         return error_response(400, "INVALID_INPUT", str(error))
+    except GeminiGameError:
+        return error_response(
+            503,
+            "AI_SERVICE_ERROR",
+            "AI 응답을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        )
 
 
 @router.get("/games/{game_id}/result")

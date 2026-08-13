@@ -1,12 +1,13 @@
 # 땅콩이 프론트엔드 연동 가이드
 
-프론트엔드 팀원이 밸런스 게임과 끝말잇기 API를 연결할 때 참고하는 문서입니다.
+프론트엔드 팀원이 말싸움, 밸런스 게임, 끝말잇기 API를 연결할 때 참고하는 문서입니다.
 
 ## 빠른 정보
 
 - API 주소: `http://127.0.0.1:5000`
 - Swagger: [http://127.0.0.1:5000/docs](http://127.0.0.1:5000/docs)
-- 현재 사용 가능한 게임: `balance`, `word_chain`
+- 현재 사용 가능한 게임: `battle`, `balance`, `word_chain`
+- 말싸움: 직장 상사·형·전애인 중 선택, 최대 5라운드
 - 밸런스 게임: 질문 3개
 - 끝말잇기: 최대 5라운드
 - 서버를 재시작하면 진행 중인 게임이 초기화됩니다.
@@ -15,7 +16,7 @@
 
 ```text
 POST /api/games
-  → POST /api/games/{gameId}/turn (총 3번)
+  → POST /api/games/{gameId}/turn (게임별 정해진 횟수)
   → GET /api/games/{gameId}/result
 ```
 
@@ -76,6 +77,35 @@ GET /api/games/{gameId}/result
 - `bestLine`: 마지막으로 선택한 문구
 
 전체 요청·응답 JSON은 [API 명세](API_SPEC.md)를 확인하세요.
+
+## 말싸움 연결
+
+시작할 때 역할을 함께 보냅니다.
+
+```json
+{
+  "mode": "battle",
+  "opponentType": "boss"
+}
+```
+
+- `boss`: 직장 상사
+- `older_brother`: 형
+- `ex`: 전애인
+
+시작 응답의 `message`는 첫 AI 말풍선, `quickReplies`는 하단 추천 답변으로 표시합니다. 사용자가 직접 입력하거나 추천 답변을 누르면 공통 턴 API의 `input`으로 전송합니다.
+
+턴 응답 처리:
+
+- `reply`: 페르소나가 유지된 AI 답변
+- `score`: 상단 승부 게이지 (`me + ai = 100`)
+- `turnScore`: 이번 턴의 원점수
+- `analysis`: 논리력, 타격감, 티키타카, 분노 단계와 감점
+- `judgeReason`: 이번 점수의 짧은 설명
+- `ended`: `true`이면 결과 API 호출
+- `winner`: 종료 시 `me`, `ai`, `draw`
+
+말싸움은 Gemini API를 사용하므로 일시적으로 `503 AI_SERVICE_ERROR`가 올 수 있습니다. 이때는 입력을 유지하고 재시도 안내를 보여주세요. 욕설·협박이 감지되면 해당 턴에서 바로 게임이 끝납니다.
 
 ## 프론트엔드 예시
 
@@ -156,16 +186,18 @@ hackathon-BE/
 │   ├── main.py                  # FastAPI 앱, CORS, 라우터 연결
 │   ├── store.py                 # 진행 중인 게임을 메모리에 저장
 │   ├── data/
+│   │   ├── battle_rules.json     # 욕설·협박·분노 판정용 키워드
 │   │   └── word_chain_words.json # 시작 단어와 전체 끝말잇기 단어
 │   ├── api/routes/
 │   │   ├── games.py             # 게임 시작·턴 진행·결과 API
 │   │   └── health.py            # 서버·DB 상태 확인 API
 │   ├── games/
 │   │   ├── balance.py           # 밸런스 질문과 진행 규칙
-│   │   ├── battle.py            # 말싸움 게임, 추후 구현
+│   │   ├── battle.py            # 말싸움 진행, 점수와 승패 계산
 │   │   └── word_chain.py        # 끝말잇기 단어 목록과 전체 진행 규칙
 │   ├── schemas/games.py         # 공통 게임 요청 검증
-│   ├── services/gemini_games.py # Gemini JSON 호출 도우미
+│   ├── services/gemini_games.py # Gemini JSON 공통 호출 도우미
+│   ├── services/gemini_battle.py # 페르소나 답변과 점수 심사
 │   ├── core/config.py           # .env 설정 로딩
 │   └── db/session.py            # MySQL 연결 세션
 ├── docs/API_SPEC.md             # 상세 API 명세
@@ -191,6 +223,12 @@ hackathon-BE/
 |  | `find_ai_word()` | AI가 이어갈 단어 선택 |
 |  | `play_turn()` | 사용자 단어 판정과 AI 턴 진행 |
 |  | `get_result()` | 승패와 단어 기록 결과 계산 |
+| `app/games/battle.py` | `start_game()` | 선택한 상대 역할로 말싸움 상태 생성 |
+|  | `play_turn()` | 반칙 검사, Gemini 답변·심사, 점수 누적 |
+|  | `calculate_turn_score()` | 항목별 가중치와 분노 감점 계산 |
+|  | `get_result()` | 최종 승패와 평균 능력치 반환 |
+| `app/services/gemini_battle.py` | `generate_persona_reply()` | 역할에 맞는 AI 대사 생성 |
+|  | `judge_turn()` | 사용자와 AI 답변을 별도 Gemini 요청으로 심사 |
 | `app/services/gemini_games.py` | `get_gemini_client()` | Gemini 클라이언트 생성 및 재사용 |
 |  | `generate_json()` | Gemini 응답을 JSON으로 변환 |
 | `app/store.py` | `new_game_id()` | 게임 ID 생성 |

@@ -8,9 +8,9 @@
 | --- | --- | --- |
 | 밸런스 게임 | ✅ 구현 완료 | 게임 시작, 3회 선택, 결과 조회 |
 | 끝말잇기 | ✅ 구현 완료 | 최대 5라운드, 단어 검증, AI 응답, 결과 조회 |
-| 말싸움 | 🚧 개발 예정 | 상대 역할별 AI 대화 구현 예정 |
+| 말싸움 | ✅ 구현 완료 | 직장 상사·형·전애인 Gemini 대화, 점수 심사, 반칙 판정 |
 
-현재 밸런스 게임과 끝말잇기는 별도 DB와 Gemini 호출 없이 실행됩니다. 끝말잇기 단어는 `app/data/word_chain_words.json`에서 관리하며, 진행 상태는 서버 메모리에 저장합니다.
+밸런스 게임과 끝말잇기는 별도 DB와 Gemini 호출 없이 실행됩니다. 말싸움만 Gemini API를 사용하며, 진행 상태는 서버 메모리에 저장합니다. 끝말잇기 단어는 `app/data/word_chain_words.json`, 말싸움 반칙 키워드는 `app/data/battle_rules.json`에서 관리합니다.
 
 ## 기술 스택
 
@@ -65,6 +65,13 @@ app/
 └── db/                     # 데이터베이스 연결
 ```
 
+게임별 핵심 파일은 다음과 같습니다.
+
+- `app/games/balance.py`: 밸런스 게임 진행
+- `app/games/word_chain.py`: 끝말잇기 진행
+- `app/games/battle.py`: 말싸움 진행, 점수 계산, 반칙 판정
+- `app/services/gemini_battle.py`: 말싸움 페르소나 답변과 별도 심사 호출
+
 ## 문서
 
 - [프론트엔드 연동 가이드](docs/FRONTEND_GUIDE.md)
@@ -82,7 +89,7 @@ python -m unittest discover -s tests -v
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-flash-latest
 APP_ENV=development
 HOST=0.0.0.0
 PORT=5000

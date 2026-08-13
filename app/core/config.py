@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     """환경 변수에서 애플리케이션 설정을 읽는다."""
 
     gemini_api_key: SecretStr
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-flash-latest"
     app_env: str = "development"
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
     database_url: str | None = None
