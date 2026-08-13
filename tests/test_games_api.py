@@ -37,6 +37,22 @@ class GamesApiTest(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["error"]["code"], "GAME_NOT_IMPLEMENTED")
 
+    def test_word_chain_flow_can_finish_and_return_result(self):
+        start = self.client.post("/api/games", json={"mode": "word_chain"})
+        self.assertEqual(start.status_code, 201)
+        start_data = start.json()
+
+        turn = self.client.post(
+            f"/api/games/{start_data['gameId']}/turn",
+            json={"input": "잘못된단어"},
+        )
+        self.assertEqual(turn.status_code, 200)
+        self.assertTrue(turn.json()["ended"])
+
+        result = self.client.get(f"/api/games/{start_data['gameId']}/result")
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.json()["mode"], "word_chain")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,13 +1,14 @@
 # 땅콩이 프론트엔드 연동 가이드
 
-프론트엔드 팀원이 밸런스 게임 API를 연결할 때 참고하는 문서입니다.
+프론트엔드 팀원이 밸런스 게임과 끝말잇기 API를 연결할 때 참고하는 문서입니다.
 
 ## 빠른 정보
 
 - API 주소: `http://127.0.0.1:5000`
 - Swagger: [http://127.0.0.1:5000/docs](http://127.0.0.1:5000/docs)
-- 현재 사용 가능한 게임: `balance`
-- 게임당 질문 수: 3개
+- 현재 사용 가능한 게임: `balance`, `word_chain`
+- 밸런스 게임: 질문 3개
+- 끝말잇기: 최대 5라운드
 - 서버를 재시작하면 진행 중인 게임이 초기화됩니다.
 
 ## 연결 순서
@@ -111,6 +112,42 @@ export async function getBalanceResult(gameId: string) {
 }
 ```
 
+## 끝말잇기 연결
+
+API URL은 밸런스 게임과 동일하며 시작할 때 `mode`만 변경합니다.
+
+```ts
+export async function startWordChainGame() {
+  const response = await fetch(`${API_BASE_URL}/api/games`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode: "word_chain" }),
+  });
+
+  if (!response.ok) throw new Error("끝말잇기를 시작하지 못했습니다.");
+  return response.json();
+}
+```
+
+시작 응답 처리:
+
+- `message`: 화면에 표시할 시작 단어
+- `nextPrompt`: 입력창에 안내할 필수 첫 글자
+- `wordHistory`: 단어 기록 영역에 표시할 목록
+
+턴 요청은 밸런스 게임과 같은 `submitBalanceChoice()` 형태를 사용하고 `input`에 사용자가 작성한 단어를 넣습니다. 함수 이름은 프론트에서 `submitGameTurn()`처럼 공통 이름으로 변경해도 됩니다.
+
+턴 응답 처리:
+
+- `accepted`: 사용자 단어의 규칙 통과 여부
+- `reply`: AI 단어 또는 패배 이유
+- `nextPrompt`: 다음에 입력할 첫 글자
+- `wordHistory`: 갱신된 전체 단어 기록
+- `ended`: 결과 화면 이동 여부
+- `winner`: 게임 종료 전에는 `null`, 종료 후 `me` 또는 `ai`
+
+현재는 백엔드에 준비된 단어만 사용할 수 있습니다. 잘못된 단어는 HTTP 오류가 아니라 `ended: true`인 패배 결과로 반환됩니다.
+
 ## 백엔드 파일 구조
 
 ```text
@@ -124,7 +161,7 @@ hackathon-BE/
 │   ├── games/
 │   │   ├── balance.py           # 밸런스 질문과 진행 규칙
 │   │   ├── battle.py            # 말싸움 게임, 추후 구현
-│   │   └── word_chain.py        # 끝말잇기 판정 코드
+│   │   └── word_chain.py        # 끝말잇기 단어 목록과 전체 진행 규칙
 │   ├── schemas/games.py         # 공통 게임 요청 검증
 │   ├── services/gemini_games.py # Gemini JSON 호출 도우미
 │   ├── core/config.py           # .env 설정 로딩
@@ -145,7 +182,12 @@ hackathon-BE/
 |  | `current_prompt()` | 현재 질문과 선택지 반환 |
 |  | `play_turn()` | 선택 검증, 점수 계산, 다음 라운드 진행 |
 |  | `get_result()` | 취향 일치도와 최종 결과 계산 |
-| `app/games/word_chain.py` | `validate_word_chain()` | 끝말 규칙과 단어 유효성 판정 |
+| `app/games/word_chain.py` | `start_game()` | 시작 단어와 게임 상태 생성 |
+|  | `get_start_response()` | 시작 단어와 필수 첫 글자 반환 |
+|  | `validate_word()` | 첫 글자, 중복, 단어 목록 검사 |
+|  | `find_ai_word()` | AI가 이어갈 단어 선택 |
+|  | `play_turn()` | 사용자 단어 판정과 AI 턴 진행 |
+|  | `get_result()` | 승패와 단어 기록 결과 계산 |
 | `app/services/gemini_games.py` | `get_gemini_client()` | Gemini 클라이언트 생성 및 재사용 |
 |  | `generate_json()` | Gemini 응답을 JSON으로 변환 |
 | `app/store.py` | `new_game_id()` | 게임 ID 생성 |
@@ -157,9 +199,11 @@ hackathon-BE/
 
 URL에 `nextPrompt.id`가 아니라 시작 응답의 `gameId`를 입력했는지 확인합니다.
 
-### `400 INVALID_CHOICE`
+### `400 INVALID_INPUT`
 
 현재 응답의 `nextPrompt.choices` 중 하나를 공백과 문구까지 동일하게 전송해야 합니다.
+
+끝말잇기의 규칙 위반은 400 오류가 아니라 정상 응답의 `accepted: false`, `ended: true`로 반환됩니다.
 
 ### 서버 재시작 후 기존 게임이 조회되지 않음
 

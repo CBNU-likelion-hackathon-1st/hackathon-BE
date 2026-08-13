@@ -82,6 +82,17 @@ def current_prompt(session: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
+def get_start_response(session: dict[str, Any]) -> dict[str, Any]:
+    """게임 시작 화면에 필요한 첫 질문을 반환한다."""
+    return {
+        "status": session["status"],
+        "round": session["round"],
+        "score": session["score"],
+        "message": "둘 중 하나를 골라보세요!",
+        "nextPrompt": current_prompt(session),
+    }
+
+
 def play_turn(session: dict[str, Any], user_input: str) -> dict[str, Any]:
     """선택을 검증하고 AI 반응, 점수, 다음 질문을 만든다."""
     if session["status"] == "finished":
