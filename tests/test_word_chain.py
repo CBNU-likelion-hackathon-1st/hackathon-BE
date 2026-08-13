@@ -1,5 +1,8 @@
 import unittest
+import json
 from random import Random
+from tempfile import TemporaryDirectory
+from pathlib import Path
 
 from app.games import word_chain
 
@@ -45,6 +48,23 @@ class WordChainGameTest(unittest.TestCase):
         self.assertFalse(response["accepted"])
         self.assertTrue(response["ended"])
         self.assertIn("단어 목록", response["reply"])
+
+    def test_word_json_has_no_duplicates_and_supports_every_start_word(self):
+        self.assertEqual(len(word_chain.WORDS), len(set(word_chain.WORDS)))
+        self.assertEqual(list(word_chain.START_WORDS), sorted(word_chain.START_WORDS))
+        self.assertEqual(list(word_chain.WORDS), sorted(word_chain.WORDS))
+        for start_word in word_chain.START_WORDS:
+            self.assertTrue(any(word.startswith(start_word[-1]) for word in word_chain.WORDS))
+
+    def test_invalid_word_json_is_rejected(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "words.json"
+            path.write_text(
+                json.dumps({"start_words": ["사과"], "words": ["과자", "과자"]}),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(RuntimeError, "중복"):
+                word_chain.load_word_data(path)
 
 
 if __name__ == "__main__":

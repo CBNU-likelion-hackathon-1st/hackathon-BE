@@ -1,29 +1,50 @@
-"""코드에 준비한 단어 목록으로 동작하는 끝말잇기 게임 로직."""
+"""JSON 단어 목록으로 동작하는 끝말잇기 게임 로직."""
 
+import json
+from pathlib import Path
 from random import Random
 from typing import Any
 
 
 MAX_USER_TURNS = 5
+WORD_DATA_FILE = Path(__file__).resolve().parents[1] / "data" / "word_chain_words.json"
 
-# MVP에서는 별도 사전 API나 DB 대신 자주 쓰는 단어를 코드로 관리한다.
-WORDS = (
-    "가방", "가위", "가족", "방송", "방울", "송아지", "지갑", "지구", "지도",
-    "갑옷", "옷장", "장미", "장갑", "장난감", "미소", "미역", "미술", "소나무",
-    "소금", "소리", "무지개", "무릎", "개나리", "개미", "리본", "본능", "과자",
-    "과일", "과학", "자동차", "자전거", "자두", "차표", "차례", "표정", "표범",
-    "정답", "정보", "답장", "보리", "보석", "석양", "양말", "양파", "말벌",
-    "말투", "벌집", "집게", "게임", "게살", "금요일", "금붕어", "일기", "일상",
-    "기차", "기린", "기분", "린스", "스키", "스위치", "키위", "위로", "위인",
-    "로봇", "전구", "전화", "전기", "구름", "구두", "구슬", "두부", "두더지",
-    "부채", "부엌", "채소", "채점", "점심", "심장", "심부름", "학교", "교실",
-    "교통", "실내", "실수", "내일", "내복", "수박", "수영", "박수", "영화", "화분", "화장실",
-    "분필", "필통", "통장", "통신", "신발", "신문", "발목", "목걸이", "이불",
-    "이마", "불꽃", "꽃병", "병원", "원숭이",
-)
 
-WORD_SET = set(WORDS)
-START_WORDS = ("사과", "기차", "학교", "전화")
+def load_word_data(file_path: Path = WORD_DATA_FILE) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """JSON에서 시작 단어와 전체 단어를 읽고 형식을 검사한다."""
+    try:
+        payload = json.loads(file_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise RuntimeError("끝말잇기 단어 파일을 읽을 수 없습니다.") from error
+
+    if not isinstance(payload, dict):
+        raise RuntimeError("끝말잇기 단어 파일은 JSON 객체여야 합니다.")
+
+    start_words = payload.get("start_words")
+    words = payload.get("words")
+    if not isinstance(start_words, list) or not isinstance(words, list):
+        raise RuntimeError("단어 파일에는 start_words와 words 목록이 필요합니다.")
+
+    all_entries = [*start_words, *words]
+    if not start_words or not words:
+        raise RuntimeError("시작 단어와 일반 단어를 한 개 이상 등록해야 합니다.")
+    if any(
+        not isinstance(word, str)
+        or len(word) < 2
+        or not all("가" <= character <= "힣" for character in word)
+        for word in all_entries
+    ):
+        raise RuntimeError("모든 끝말잇기 단어는 한글 두 글자 이상이어야 합니다.")
+    if len(start_words) != len(set(start_words)) or len(words) != len(set(words)):
+        raise RuntimeError("단어 목록에 중복 단어가 있습니다.")
+    if any(not any(word.startswith(start_word[-1]) for word in words) for start_word in start_words):
+        raise RuntimeError("이어갈 단어가 없는 시작 단어가 있습니다.")
+
+    return tuple(start_words), tuple(words)
+
+
+START_WORDS, WORDS = load_word_data()
+WORD_SET = frozenset(WORDS)
 
 
 def start_game(rng: Random | None = None) -> dict[str, Any]:

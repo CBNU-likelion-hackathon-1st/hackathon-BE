@@ -146,7 +146,7 @@ export async function startWordChainGame() {
 - `ended`: 결과 화면 이동 여부
 - `winner`: 게임 종료 전에는 `null`, 종료 후 `me` 또는 `ai`
 
-현재는 백엔드에 준비된 단어만 사용할 수 있습니다. 잘못된 단어는 HTTP 오류가 아니라 `ended: true`인 패배 결과로 반환됩니다.
+현재는 `app/data/word_chain_words.json`에 준비된 단어만 사용할 수 있습니다. 잘못된 단어는 HTTP 오류가 아니라 `ended: true`인 패배 결과로 반환됩니다.
 
 ## 백엔드 파일 구조
 
@@ -155,6 +155,8 @@ hackathon-BE/
 ├── app/
 │   ├── main.py                  # FastAPI 앱, CORS, 라우터 연결
 │   ├── store.py                 # 진행 중인 게임을 메모리에 저장
+│   ├── data/
+│   │   └── word_chain_words.json # 시작 단어와 전체 끝말잇기 단어
 │   ├── api/routes/
 │   │   ├── games.py             # 게임 시작·턴 진행·결과 API
 │   │   └── health.py            # 서버·DB 상태 확인 API
@@ -183,6 +185,7 @@ hackathon-BE/
 |  | `play_turn()` | 선택 검증, 점수 계산, 다음 라운드 진행 |
 |  | `get_result()` | 취향 일치도와 최종 결과 계산 |
 | `app/games/word_chain.py` | `start_game()` | 시작 단어와 게임 상태 생성 |
+|  | `load_word_data()` | JSON 단어 목록 로딩 및 형식 검사 |
 |  | `get_start_response()` | 시작 단어와 필수 첫 글자 반환 |
 |  | `validate_word()` | 첫 글자, 중복, 단어 목록 검사 |
 |  | `find_ai_word()` | AI가 이어갈 단어 선택 |
