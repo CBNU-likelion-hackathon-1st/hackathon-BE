@@ -8,6 +8,7 @@
 
 | Method | URL | 설명 |
 | --- | --- | --- |
+| `GET` | `/api/battle/opponents` | 홈 화면의 말싸움 상대 목록 조회 |
 | `POST` | `/api/games` | `mode`에 맞는 게임 시작 |
 | `POST` | `/api/games/{gameId}/turn` | 한 턴 진행 |
 | `GET` | `/api/games/{gameId}/result` | 종료된 게임 결과 조회 |
@@ -16,7 +17,41 @@
 
 ## 말싸움
 
-### 1. 게임 시작
+### 1. 상대 목록 조회
+
+`GET /api/battle/opponents`
+
+요청 Body는 없다.
+
+```json
+{
+  "opponents": [
+    {
+      "type": "boss",
+      "name": "직장 상사",
+      "description": "라떼는 말이야 직장 상사",
+      "tags": ["꼰대퇴치", "격식"]
+    },
+    {
+      "type": "older_brother",
+      "name": "형",
+      "description": "잔소리 만렙 현실 형",
+      "tags": ["형제배틀", "반말"]
+    },
+    {
+      "type": "ex",
+      "name": "전애인",
+      "description": "할 말 많은 전애인",
+      "tags": ["미련없음", "팩트폭격"]
+    }
+  ],
+  "count": 3
+}
+```
+
+프론트는 선택한 카드의 `type`을 게임 시작 요청의 `opponentType`으로 보낸다.
+
+### 2. 게임 시작
 
 `POST /api/games`
 
@@ -54,7 +89,7 @@
 }
 ```
 
-### 2. 대사 전송
+### 3. 대사 전송
 
 `POST /api/games/{gameId}/turn`
 
@@ -94,7 +129,7 @@
 - 욕설·협박·혐오 표현은 즉시 패배 처리한다.
 - 5라운드 후 사용자와 AI의 누적 점수를 비교한다. 화면용 점수 차이가 3점 이하면 무승부다.
 
-### 3. 결과 조회
+### 4. 결과 조회
 
 `GET /api/games/{gameId}/result`
 

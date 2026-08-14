@@ -46,6 +46,7 @@ uvicorn app.main:app --reload --port 5000
 | --- | --- | --- |
 | `GET` | `/health` | 서버 상태 확인 |
 | `GET` | `/health/database` | MySQL 연결 상태 확인 |
+| `GET` | `/api/battle/opponents` | 홈 화면의 말싸움 상대 카드 목록 |
 | `POST` | `/api/games` | 게임 시작 |
 | `POST` | `/api/games/{gameId}/turn` | 한 턴 진행 |
 | `GET` | `/api/games/{gameId}/result` | 게임 결과 조회 |

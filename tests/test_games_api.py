@@ -38,6 +38,16 @@ class GamesApiTest(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()["error"]["code"], "INVALID_INPUT")
 
+    def test_battle_opponents_are_available_for_home_cards(self):
+        response = self.client.get("/api/battle/opponents")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["count"], 3)
+        self.assertEqual(data["opponents"][0]["type"], "boss")
+        self.assertIn("description", data["opponents"][0])
+        self.assertIn("tags", data["opponents"][0])
+
     @patch("app.games.battle.gemini_battle.judge_turn")
     @patch("app.games.battle.gemini_battle.generate_persona_reply")
     def test_battle_game_starts_and_plays_a_turn(self, generate_reply, judge_turn):

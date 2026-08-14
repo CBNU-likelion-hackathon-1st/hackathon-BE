@@ -80,7 +80,17 @@ GET /api/games/{gameId}/result
 
 ## 말싸움 연결
 
-시작할 때 역할을 함께 보냅니다.
+홈 화면에서 상대 카드 목록을 먼저 불러옵니다.
+
+```ts
+export async function getBattleOpponents() {
+  const response = await fetch(`${API_BASE_URL}/api/battle/opponents`);
+  if (!response.ok) throw new Error("상대 목록을 불러오지 못했습니다.");
+  return response.json();
+}
+```
+
+응답의 `opponents`를 카드로 표시하고, 선택한 카드의 `type`을 게임 시작 요청에 넣습니다.
 
 ```json
 {
@@ -224,6 +234,7 @@ hackathon-BE/
 |  | `play_turn()` | 사용자 단어 판정과 AI 턴 진행 |
 |  | `get_result()` | 승패와 단어 기록 결과 계산 |
 | `app/games/battle.py` | `start_game()` | 선택한 상대 역할로 말싸움 상태 생성 |
+|  | `list_opponents()` | 홈 상대 카드 이름·설명·태그 반환 |
 |  | `play_turn()` | 반칙 검사, Gemini 답변·심사, 점수 누적 |
 |  | `calculate_turn_score()` | 항목별 가중치와 분노 감점 계산 |
 |  | `get_result()` | 최종 승패와 평균 능력치 반환 |

@@ -33,6 +33,13 @@ def get_handler(mode: str) -> ModuleType | None:
     return GAME_HANDLERS.get(mode)
 
 
+@router.get("/battle/opponents")
+def get_battle_opponents():
+    """홈 화면에서 선택할 수 있는 말싸움 상대 3명을 반환한다."""
+    opponents = battle.list_opponents()
+    return {"opponents": opponents, "count": len(opponents)}
+
+
 @router.post("/games", status_code=201)
 def create_game(payload: CreateGameRequest):
     """선택한 모드의 새 게임과 첫 질문 또는 단어를 반환한다."""

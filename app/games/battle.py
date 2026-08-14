@@ -15,6 +15,8 @@ RULES_FILE = Path(__file__).resolve().parents[1] / "data" / "battle_rules.json"
 PERSONAS: dict[str, dict[str, Any]] = {
     "boss": {
         "label": "직장 상사",
+        "description": "라떼는 말이야 직장 상사",
+        "tags": ["꼰대퇴치", "격식"],
         "opening": "이 보고서, 이게 최선이야? 다시 설명해 봐.",
         "roleInstruction": (
             "성과와 근거를 중요하게 생각하는 까다로운 직장 상사다. "
@@ -25,6 +27,8 @@ PERSONAS: dict[str, dict[str, Any]] = {
     },
     "older_brother": {
         "label": "형",
+        "description": "잔소리 만렙 현실 형",
+        "tags": ["형제배틀", "반말"],
         "opening": "내가 너보다 오래 살아봐서 아는데, 그건 아니야.",
         "roleInstruction": (
             "현실적인 잔소리와 장난을 섞는 친형이다. 반말로 능청스럽게 받아치되 "
@@ -35,6 +39,8 @@ PERSONAS: dict[str, dict[str, Any]] = {
     },
     "ex": {
         "label": "전애인",
+        "description": "할 말 많은 전애인",
+        "tags": ["미련없음", "팩트폭격"],
         "opening": "넌 아직도 네가 왜 차였는지 모르는구나?",
         "roleInstruction": (
             "눈치가 빠르고 차분한 전애인이다. 과거의 사소한 습관을 떠올리며 냉정하게 "
@@ -44,6 +50,19 @@ PERSONAS: dict[str, dict[str, Any]] = {
         "quickReplies": ["그건 네 입장이고", "지금도 남 탓이네", "그래서 할 말은 그거야?"],
     },
 }
+
+
+def list_opponents() -> list[dict[str, object]]:
+    """홈 화면의 상대 선택 카드에 필요한 공개 정보만 반환한다."""
+    return [
+        {
+            "type": opponent_type,
+            "name": profile["label"],
+            "description": profile["description"],
+            "tags": profile["tags"],
+        }
+        for opponent_type, profile in PERSONAS.items()
+    ]
 
 
 def load_battle_rules(file_path: Path = RULES_FILE) -> dict[str, tuple[str, ...]]:

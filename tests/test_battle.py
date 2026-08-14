@@ -25,6 +25,16 @@ SAFE_JUDGEMENT = {
 
 
 class BattleGameTest(unittest.TestCase):
+    def test_opponent_list_contains_card_information(self):
+        opponents = battle.list_opponents()
+
+        self.assertEqual(
+            [opponent["type"] for opponent in opponents],
+            ["boss", "older_brother", "ex"],
+        )
+        self.assertTrue(all(opponent["description"] for opponent in opponents))
+        self.assertTrue(all(len(opponent["tags"]) == 2 for opponent in opponents))
+
     def test_start_game_supports_only_three_personas(self):
         for opponent_type in ("boss", "older_brother", "ex"):
             session = battle.start_game(opponent_type)
