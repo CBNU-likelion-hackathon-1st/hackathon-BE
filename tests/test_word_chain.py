@@ -49,6 +49,16 @@ class WordChainGameTest(unittest.TestCase):
         self.assertTrue(response["ended"])
         self.assertIn("단어 목록", response["reply"])
 
+    def test_official_dictionary_noun_is_accepted(self):
+        session = word_chain.start_game(Random(1))
+        session["last_word"] = "영화"
+        session["used_words"] = ["영화"]
+
+        valid, reason = word_chain.validate_word(session, "화장")
+
+        self.assertTrue(valid, reason)
+        self.assertGreater(len(word_chain.WORDS), 20_000)
+
     def test_word_json_has_no_duplicates_and_supports_every_start_word(self):
         self.assertEqual(len(word_chain.WORDS), len(set(word_chain.WORDS)))
         self.assertEqual(list(word_chain.START_WORDS), sorted(word_chain.START_WORDS))

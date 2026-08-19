@@ -10,7 +10,7 @@
 | 끝말잇기 | ✅ 구현 완료 | 최대 5라운드, 단어 검증, AI 응답, 결과 조회 |
 | 말싸움 | ✅ 구현 완료 | 직장 상사·형·전애인 Gemini 대화, 점수 심사, 반칙 판정 |
 
-밸런스 게임과 끝말잇기는 별도 DB와 Gemini 호출 없이 실행됩니다. 말싸움만 Gemini API를 사용하며, 진행 상태는 서버 메모리에 저장합니다. 끝말잇기 단어는 `app/data/word_chain_words.json`, 말싸움 반칙 키워드는 `app/data/battle_rules.json`에서 관리합니다.
+밸런스 게임과 끝말잇기는 별도 DB와 Gemini 호출 없이 실행됩니다. 말싸움만 Gemini API를 사용하며, 진행 상태는 서버 메모리에 저장합니다. 끝말잇기 단어는 `app/data/word_chain_words.json`, 말싸움 반칙 키워드는 `app/data/battle_rules.json`에서 관리합니다. 끝말잇기 목록에는 국립국어원 한국어기초사전에서 정제한 명사가 포함되며, 출처와 라이선스는 `app/data/WORD_DATA_LICENSE.md`에 기록되어 있습니다.
 
 ## 기술 스택
 
@@ -82,6 +82,16 @@ app/
 
 ```bash
 python -m unittest discover -s tests -v
+```
+
+### 끝말잇기 단어 목록 갱신
+
+한국어기초사전의 [사전 전체 내려받기](https://krdict.korean.go.kr/download/downloadPopup)에서
+JSON ZIP을 받은 뒤 아래 명령을 실행합니다. 명사·단어·두 글자 이상의 완성형 한글만
+선별하고 기존 단어와 합쳐 `word_chain_words.json`을 갱신합니다.
+
+```bash
+python scripts/build_word_chain_dictionary.py /path/to/한국어기초사전_json.zip
 ```
 
 ## 환경 변수
